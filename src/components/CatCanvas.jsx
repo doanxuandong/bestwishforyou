@@ -297,6 +297,205 @@ const CatCanvas = forwardRef(function CatCanvas({ onPet }, ref) {
     cushion.receiveShadow = true;
     catGroup.add(cushion);
 
+    // --- 3D Radiant Fairy Butterfly (Bay lượn đúng khoảng trống giữa chữ và đầu mèo, cánh to rõ 100%) ---
+    const butterflyGroup = new THREE.Group();
+    scene.add(butterflyGroup);
+
+    // Thân bướm thon gọn, dễ thương
+    const bBodyMat = new THREE.MeshStandardMaterial({
+      color: 0x331822, // Nâu tím nhung sang trọng
+      roughness: 0.35,
+      metalness: 0.15
+    });
+
+    // Đầu bướm
+    const bHeadGeo = new THREE.SphereGeometry(0.045, 14, 14);
+    const bHeadMesh = new THREE.Mesh(bHeadGeo, bBodyMat);
+    bHeadMesh.position.set(0, 0.15, 0.02);
+    butterflyGroup.add(bHeadMesh);
+
+    // 2 Râu cong xinh xắn với hạt ngọc vàng phát sáng
+    const antMat = new THREE.MeshStandardMaterial({ color: 0x4a2228, roughness: 0.4 });
+    const antTipMat = new THREE.MeshStandardMaterial({
+      color: 0xffea75,
+      emissive: 0xffaa00,
+      emissiveIntensity: 0.95
+    });
+    const antGeo = new THREE.CylinderGeometry(0.0035, 0.0035, 0.11, 8);
+    const antTipGeo = new THREE.SphereGeometry(0.013, 8, 8);
+
+    const leftAnt = new THREE.Mesh(antGeo, antMat);
+    leftAnt.position.set(-0.03, 0.21, 0.03);
+    leftAnt.rotation.set(0.15, 0, 0.35);
+    butterflyGroup.add(leftAnt);
+    const leftTip = new THREE.Mesh(antTipGeo, antTipMat);
+    leftTip.position.set(-0.055, 0.26, 0.045);
+    butterflyGroup.add(leftTip);
+
+    const rightAnt = new THREE.Mesh(antGeo, antMat);
+    rightAnt.position.set(0.03, 0.21, 0.03);
+    rightAnt.rotation.set(0.15, 0, -0.35);
+    butterflyGroup.add(rightAnt);
+    const rightTip = new THREE.Mesh(antTipGeo, antTipMat);
+    rightTip.position.set(0.055, 0.26, 0.045);
+    butterflyGroup.add(rightTip);
+
+    // Ngực & Bụng bướm
+    const bThoraxGeo = new THREE.SphereGeometry(0.04, 12, 12);
+    const bThoraxMesh = new THREE.Mesh(bThoraxGeo, bBodyMat);
+    bThoraxMesh.position.set(0, 0.06, 0.01);
+    butterflyGroup.add(bThoraxMesh);
+
+    const bAbdomenGeo = new THREE.CylinderGeometry(0.026, 0.01, 0.25, 12);
+    const bAbdomenMesh = new THREE.Mesh(bAbdomenGeo, bBodyMat);
+    bAbdomenMesh.position.set(0, -0.09, -0.01);
+    butterflyGroup.add(bAbdomenMesh);
+
+    // Màu cánh ban mai: Cam đào rực rỡ + Vàng kim tỏa nắng
+    const wingMat = new THREE.MeshStandardMaterial({
+      color: 0xff6b35,
+      emissive: 0xff3b00,
+      emissiveIntensity: 0.65,
+      roughness: 0.25,
+      metalness: 0.1,
+      side: THREE.DoubleSide
+    });
+    const wingAccentMat = new THREE.MeshStandardMaterial({
+      color: 0xffd166,
+      emissive: 0xffa000,
+      emissiveIntensity: 0.85,
+      roughness: 0.2,
+      side: THREE.DoubleSide
+    });
+    const hindWingMat = new THREE.MeshStandardMaterial({
+      color: 0xff8c5a,
+      emissive: 0xff4f1f,
+      emissiveIntensity: 0.5,
+      roughness: 0.3,
+      side: THREE.DoubleSide
+    });
+
+    // Cánh trước to tròn hình cánh bướm tiêu chuẩn (Forewing: rộng 0.75, cao 0.60)
+    const foreWingShape = new THREE.Shape();
+    foreWingShape.moveTo(0, 0.02);
+    foreWingShape.bezierCurveTo(0.15, 0.22, 0.40, 0.65, 0.75, 0.55);
+    foreWingShape.bezierCurveTo(0.92, 0.45, 0.95, 0.18, 0.72, -0.02);
+    foreWingShape.bezierCurveTo(0.50, -0.15, 0.25, -0.06, 0, 0.02);
+    const foreWingGeo = new THREE.ShapeGeometry(foreWingShape);
+
+    // Đốm sáng vàng kim rực rỡ bên trong cánh trước
+    const innerForeShape = new THREE.Shape();
+    innerForeShape.moveTo(0, 0.02);
+    innerForeShape.bezierCurveTo(0.12, 0.18, 0.32, 0.48, 0.58, 0.42);
+    innerForeShape.bezierCurveTo(0.70, 0.35, 0.70, 0.14, 0.52, 0.02);
+    innerForeShape.bezierCurveTo(0.35, -0.08, 0.18, -0.03, 0, 0.02);
+    const innerForeGeo = new THREE.ShapeGeometry(innerForeShape);
+
+    // Cánh sau cong tròn mềm mại (Hindwing)
+    const hindWingShape = new THREE.Shape();
+    hindWingShape.moveTo(0, 0);
+    hindWingShape.bezierCurveTo(0.18, -0.06, 0.50, -0.16, 0.52, -0.42);
+    hindWingShape.bezierCurveTo(0.40, -0.58, 0.15, -0.50, 0, 0);
+    const hindWingGeo = new THREE.ShapeGeometry(hindWingShape);
+
+    // Cánh trái (Left Wing Group)
+    const leftWingGroup = new THREE.Group();
+    leftWingGroup.position.set(-0.015, 0.05, 0);
+
+    const leftForeWing = new THREE.Mesh(foreWingGeo, wingMat);
+    leftForeWing.scale.set(-1, 1, 1);
+    leftWingGroup.add(leftForeWing);
+
+    const leftInnerFore = new THREE.Mesh(innerForeGeo, wingAccentMat);
+    leftInnerFore.scale.set(-1, 1, 1);
+    leftInnerFore.position.z = 0.003;
+    leftWingGroup.add(leftInnerFore);
+
+    const leftHindWing = new THREE.Mesh(hindWingGeo, hindWingMat);
+    leftHindWing.scale.set(-1, 1, 1);
+    leftWingGroup.add(leftHindWing);
+
+    butterflyGroup.add(leftWingGroup);
+
+    // Cánh phải (Right Wing Group)
+    const rightWingGroup = new THREE.Group();
+    rightWingGroup.position.set(0.015, 0.05, 0);
+
+    const rightForeWing = new THREE.Mesh(foreWingGeo, wingMat);
+    rightWingGroup.add(rightForeWing);
+
+    const rightInnerFore = new THREE.Mesh(innerForeGeo, wingAccentMat);
+    rightInnerFore.position.z = 0.003;
+    rightWingGroup.add(rightInnerFore);
+
+    const rightHindWing = new THREE.Mesh(hindWingGeo, hindWingMat);
+    rightWingGroup.add(rightHindWing);
+
+    butterflyGroup.add(rightWingGroup);
+
+    // Kích thước bướm nhỏ nhắn, xinh xắn, vừa vặn hoàn hảo trong khoảng trống
+    butterflyGroup.scale.set(0.75, 0.75, 0.75);
+
+    // 3 Hạt bụi tiên vàng lấp lánh bay theo sau bướm (Sparkle Dust Trail)
+    const dustTrail = [
+      { mesh: new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), new THREE.MeshBasicMaterial({ color: 0xfff3a0, transparent: true, opacity: 0.85 })), lag: 0.08 },
+      { mesh: new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffdf70, transparent: true, opacity: 0.7 })), lag: 0.16 },
+      { mesh: new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffb84d, transparent: true, opacity: 0.55 })), lag: 0.24 }
+    ];
+    dustTrail.forEach((d) => scene.add(d.mesh));
+
+    // --- Floating 3D Golden Fairy Stars (Tinh thể sao 3D lấp lánh ở khoảng trống) ---
+    const starGeo = new THREE.OctahedronGeometry(0.075, 0);
+    const starMat = new THREE.MeshStandardMaterial({
+      color: 0xffe066,
+      emissive: 0xffa900,
+      emissiveIntensity: 0.55,
+      roughness: 0.2
+    });
+    const floatingStars = [
+      { mesh: new THREE.Mesh(starGeo, starMat), x: -1.3, y: 1.65, z: 0.8, speed: 1.1 },
+      { mesh: new THREE.Mesh(starGeo, starMat), x: 1.35, y: 1.45, z: 0.6, speed: 0.9 },
+      { mesh: new THREE.Mesh(starGeo, starMat), x: -0.75, y: 1.25, z: 1.1, speed: 1.3 },
+      { mesh: new THREE.Mesh(starGeo, starMat), x: 0.95, y: 1.85, z: 0.75, speed: 1.15 }
+    ];
+    floatingStars.forEach((s) => {
+      s.mesh.position.set(s.x, s.y, s.z);
+      scene.add(s.mesh);
+    });
+
+    // --- 3D Fluffy Morning Clouds ---
+    function createFluffyCloud(scale = 1) {
+      const cloud = new THREE.Group();
+      const cMat = new THREE.MeshLambertMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.65
+      });
+      const parts = [
+        { r: 0.28, x: 0, y: 0, z: 0 },
+        { r: 0.22, x: -0.24, y: -0.04, z: 0.02 },
+        { r: 0.20, x: 0.25, y: -0.05, z: -0.02 },
+        { r: 0.18, x: -0.12, y: 0.12, z: -0.01 },
+        { r: 0.19, x: 0.14, y: 0.10, z: 0.01 }
+      ];
+      parts.forEach((p) => {
+        const geo = new THREE.SphereGeometry(p.r, 16, 16);
+        const m = new THREE.Mesh(geo, cMat);
+        m.position.set(p.x, p.y, p.z);
+        cloud.add(m);
+      });
+      cloud.scale.set(scale, scale * 0.75, scale * 0.85);
+      return cloud;
+    }
+
+    const cloud1 = createFluffyCloud(1.2);
+    cloud1.position.set(-1.8, 1.3, -1.5);
+    scene.add(cloud1);
+
+    const cloud2 = createFluffyCloud(0.95);
+    cloud2.position.set(1.9, 1.6, -2.0);
+    scene.add(cloud2);
+
     // Mouse & Touch tracking coordinates
     const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
     const raycaster = new THREE.Raycaster();
@@ -454,7 +653,7 @@ const CatCanvas = forwardRef(function CatCanvas({ onPet }, ref) {
       }
     };
 
-    // Responsive camera & positioning optimization for Mobile vs Desktop
+      // Responsive camera & positioning optimization for Mobile vs Desktop
     const handleResize = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
@@ -463,14 +662,14 @@ const CatCanvas = forwardRef(function CatCanvas({ onPet }, ref) {
       camera.aspect = aspect;
 
       // Dynamic framing:
-      // Mobile screens (portrait aspect < 0.8) need greater camera distance and slight downward offset
-      // so the cat is perfectly placed between top header and bottom quote card.
+      // Mobile screens (portrait aspect < 0.8) place the cat at a natural height
+      // with the butterfly fluttering gracefully right in the middle gap!
       if (width < 480) {
-        camera.position.set(0, 1.25, 7.3);
-        catGroup.position.set(0, -1.05, 0);
+        camera.position.set(0, 1.35, 7.0);
+        catGroup.position.set(0, -0.78, 0);
       } else if (width < 768) {
-        camera.position.set(0, 1.25, 6.6);
-        catGroup.position.set(0, -0.95, 0);
+        camera.position.set(0, 1.25, 6.4);
+        catGroup.position.set(0, -0.72, 0);
       } else {
         camera.position.set(0, 1.2, 5.8);
         catGroup.position.set(0, -0.65, 0);
@@ -495,12 +694,77 @@ const CatCanvas = forwardRef(function CatCanvas({ onPet }, ref) {
       mouse.x += (mouse.targetX - mouse.x) * 0.05;
       mouse.y += (mouse.targetY - mouse.y) * 0.05;
 
-      // Cat head tracks cursor / touch
-      headGroup.rotation.y = mouse.x * 0.9;
-      headGroup.rotation.x = -mouse.y * 0.7;
+      // --- 3D Butterfly flight & organic wing flapping (Vỗ cánh uyển chuyển, thấy rõ từng nhịp đập) ---
+      const flapSpeed = 16;
+      // Chu kỳ vỗ cánh: mở rộng cánh -> vỗ khép góc chữ V ~48 độ
+      const flapCycle = (Math.sin(elapsedTime * flapSpeed) + 1) * 0.5; // từ 0 đến 1
+      const flapAngle = THREE.MathUtils.lerp(0.05, 0.82, Math.pow(flapCycle, 1.25));
+      leftWingGroup.rotation.y = flapAngle;
+      rightWingGroup.rotation.y = -flapAngle;
+
+      // Độ nhấp nhô đầu cánh lên xuống theo lực cản gió
+      leftWingGroup.rotation.z = Math.sin(elapsedTime * flapSpeed) * 0.16;
+      rightWingGroup.rotation.z = -Math.sin(elapsedTime * flapSpeed) * 0.16;
+
+      const bt = elapsedTime * 0.65;
+      const prevX = butterflyGroup.position.x;
+
+      // Quỹ đạo bay lượn hình số 8 CHÍNH GIỮA KHOẢNG TRỐNG giữa câu chúc và tai mèo
+      const bx = Math.sin(bt) * 0.85 + Math.cos(bt * 0.38) * 0.22;
+      // Lực nâng mỗi nhịp vỗ cánh làm bướm bồng bềnh
+      const flutterLift = Math.sin(elapsedTime * flapSpeed) * 0.035;
+      // y = 1.72 đặt chú bướm chính giữa khoảng trống (dưới câu chúc 2.1, trên tai mèo 1.2)
+      const by = (window.innerWidth < 480 ? 1.72 : 1.55) + Math.sin(bt * 1.3) * 0.16 + flutterLift;
+      const bz = 1.35 + Math.cos(bt * 0.9) * 0.35;
+      butterflyGroup.position.set(bx, by, bz);
+
+      const dx = bx - prevX;
+      // 1. Góc nhìn hướng về camera để người dùng luôn chiêm ngưỡng trọn vẹn đôi cánh
+      butterflyGroup.rotation.x = 0.22 + Math.sin(bt * 1.3) * 0.06;
+
+      // 2. Độ nghiêng lượn nhẹ nhàng khi đổi hướng
+      butterflyGroup.rotation.z = Math.max(-0.25, Math.min(0.25, -dx * 2.0));
+
+      // 3. Xoay nhẹ đầu theo hướng bay
+      butterflyGroup.rotation.y = Math.max(-0.35, Math.min(0.35, dx * 3.0));
+
+      // Cập nhật bụi tiên vàng lấp lánh bay theo sau bướm
+      dustTrail.forEach((d, idx) => {
+        const tLag = bt - d.lag;
+        const tx = Math.sin(tLag) * 0.85 + Math.cos(tLag * 0.38) * 0.22;
+        const ty = (window.innerWidth < 480 ? 1.72 : 1.55) + Math.sin(tLag * 1.3) * 0.16 - 0.03 * (idx + 1);
+        const tz = 1.35 + Math.cos(tLag * 0.9) * 0.35 - 0.04 * (idx + 1);
+        d.mesh.position.set(tx, ty, tz);
+        d.mesh.scale.setScalar(0.7 + Math.sin(elapsedTime * 6 + idx) * 0.3);
+      });
+
+      // --- Floating Golden Fairy Stars Animation ---
+      floatingStars.forEach((s) => {
+        s.mesh.rotation.x += 0.015 * s.speed;
+        s.mesh.rotation.y += 0.02 * s.speed;
+        s.mesh.position.y = s.y + Math.sin(elapsedTime * s.speed * 1.5) * 0.14;
+      });
+
+      // --- Soft Clouds gentle drift ---
+      cloud1.position.x += 0.0012;
+      if (cloud1.position.x > 3.4) cloud1.position.x = -3.4;
+      cloud2.position.x += 0.0008;
+      if (cloud2.position.x > 3.6) cloud2.position.x = -3.6;
+
+      cloud1.position.y = 1.2 + Math.sin(elapsedTime * 0.7) * 0.04;
+      cloud2.position.y = 1.5 + Math.cos(elapsedTime * 0.5) * 0.04;
+
+      // Cat head tracks cursor/touch, or cutely glances at the butterfly when user is idle!
+      if (Math.abs(mouse.targetX) < 0.05 && Math.abs(mouse.targetY) < 0.05) {
+        headGroup.rotation.y = butterflyGroup.position.x * 0.18;
+        headGroup.rotation.x = -(butterflyGroup.position.y - 0.9) * 0.20;
+      } else {
+        headGroup.rotation.y = mouse.x * 0.9;
+        headGroup.rotation.x = -mouse.y * 0.7;
+      }
 
       // Cute natural breathing motion
-      const baseCatY = window.innerWidth < 480 ? -1.05 : (window.innerWidth < 768 ? -0.95 : -0.65);
+      const baseCatY = window.innerWidth < 480 ? -0.78 : (window.innerWidth < 768 ? -0.72 : -0.65);
       catGroup.position.y = baseCatY + Math.sin(elapsedTime * 2.2) * 0.025;
       bodyMesh.scale.y = 1.15 + Math.sin(elapsedTime * 2.2) * 0.02;
 
@@ -545,14 +809,20 @@ const CatCanvas = forwardRef(function CatCanvas({ onPet }, ref) {
         bodyGeo, backPatchGeo, pawGeo, tailGeo, collarGeo, bellGeo,
         headGeo, foreheadPatchGeo, earGeo, innerEarGeo, eyeBaseGeo,
         eyeSparkleGeo, eyeMiniSparkleGeo, blushGeo, noseGeo, muzzleGeo,
-        particleGeo, cushionGeo
-      ].forEach(geo => geo.dispose());
+        particleGeo, cushionGeo, bHeadGeo, bThoraxGeo, bAbdomenGeo,
+        foreWingGeo, innerForeGeo, hindWingGeo, antGeo, antTipGeo
+      ].forEach((geo) => {
+        try { if (geo && geo.dispose) geo.dispose(); } catch (e) {}
+      });
 
       [
         furMaterial, patchMaterial, innerEarMaterial, noseMaterial,
         eyeMaterial, eyeSparkleMaterial, whiskerMaterial, collarMaterial,
-        bellMaterial, particleMat, cushionMat
-      ].forEach(mat => mat.dispose());
+        bellMaterial, particleMat, cushionMat, bBodyMat, wingMat, wingAccentMat,
+        hindWingMat, antMat, antTipMat
+      ].forEach((mat) => {
+        try { if (mat && mat.dispose) mat.dispose(); } catch (e) {}
+      });
     };
   }, [onPet]);
 

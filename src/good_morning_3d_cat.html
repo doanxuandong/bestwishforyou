@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chào Buổi Sáng | Cute 3D Morning Cat</title>
+  
+  <!-- Google Fonts: Quicksand & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Three.js & GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      background: linear-gradient(180deg, #ffdfdf 0%, #ffe9d6 45%, #ffd6ba 100%);
+    }
+
+    .font-display {
+      font-family: 'Outfit', sans-serif;
+    }
+
+    #webgl-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      pointer-events: auto;
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 20px 40px -15px rgba(255, 140, 107, 0.15),
+                  0 0 15px 0 rgba(255, 255, 255, 0.5) inset;
+    }
+
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.9);
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .glass-btn:hover {
+      background: rgba(255, 255, 255, 0.95);
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 10px 20px -5px rgba(251, 146, 60, 0.3);
+    }
+    .glass-btn:active {
+      transform: translateY(1px) scale(0.98);
+    }
+
+    /* Floating heart animations for cat petting */
+    .floating-heart {
+      position: fixed;
+      pointer-events: none;
+      z-index: 50;
+      animation: floatUp 1.4s ease-out forwards;
+      font-size: 24px;
+    }
+
+    @keyframes floatUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(0.6) rotate(0deg);
+      }
+      50% {
+        opacity: 0.9;
+        transform: translateY(-50px) scale(1.2) rotate(15deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-110px) scale(1.4) rotate(-15deg);
+      }
+    }
+
+    /* Sun rays subtle shimmer */
+    .sun-glow {
+      position: fixed;
+      top: -10vw;
+      right: -10vw;
+      width: 55vw;
+      height: 55vw;
+      background: radial-gradient(circle, rgba(255, 235, 178, 0.7) 0%, rgba(255, 183, 143, 0.3) 50%, transparent 75%);
+      z-index: 0;
+      pointer-events: none;
+      filter: blur(35px);
+    }
+  </style>
+</head>
+
+<body class="h-full w-full relative flex flex-col justify-between overflow-hidden">
+  <div class="sun-glow"></div>
+  
+  <!-- 3D Three.js Canvas Container -->
+  <canvas id="webgl-canvas"></canvas>
+
+  <!-- Top Navigation / Ambient Controls -->
+  <header class="relative z-10 w-full px-6 py-5 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-10 h-10 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-500 shadow-sm border border-white/60">
+        <i data-lucide="sun-medium" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <span class="text-xs font-semibold uppercase tracking-wider text-amber-800/70">Tia Sáng Đầu Ngày</span>
+        <h1 class="text-lg font-bold font-display text-slate-800 leading-tight">Mèo Tắm Nắng</h1>
+      </div>
+    </div>
+
+    <!-- Quick Actions (Audio / Pet prompt) -->
+    <div class="flex items-center gap-2.5">
+      <button id="audio-toggle" class="glass-btn px-3.5 py-2.5 rounded-2xl flex items-center gap-2 text-slate-700 font-medium text-xs md:text-sm shadow-sm">
+        <i data-lucide="volume-x" id="audio-icon" class="w-4 h-4 text-amber-600"></i>
+        <span id="audio-text">Bật Giai Điệu Ban Mai</span>
+      </button>
+
+      <button id="pet-cat-btn" class="glass-btn px-3.5 py-2.5 rounded-2xl flex items-center gap-2 text-pink-600 font-semibold text-xs md:text-sm shadow-sm">
+        <i data-lucide="heart" class="w-4 h-4 fill-pink-500 text-pink-500"></i>
+        <span>Xoa Đầu Mèo</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="relative z-10 w-full max-w-2xl mx-auto px-6 pointer-events-none mt-4 md:mt-2">
+    <div class="text-center pointer-events-auto">
+      <div class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/70 text-amber-900 border border-white/80 shadow-sm text-xs font-bold mb-3">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+        <span id="date-label">Hôm nay là một ngày tuyệt vời</span>
+      </div>
+
+      <h2 class="text-3xl sm:text-5xl font-black font-display text-slate-800 tracking-tight leading-tight drop-shadow-sm">
+        Chào Buổi Sáng, <span class="bg-clip-text text-transparent bg-gradient-to-r from-amber-600 via-orange-500 to-pink-500">Bình An Nhé!</span>
+      </h2>
+
+      <!-- Inspirational Morning Quote Card -->
+      <div class="mt-4 glass-card p-4 sm:p-5 rounded-3xl max-w-lg mx-auto transition-all duration-300">
+        <p id="quote-text" class="text-slate-700 text-sm sm:text-base font-semibold leading-relaxed italic">
+          "Mỗi buổi sáng mang đến một hy vọng mới, một cơ hội mới để bạn tỏa sáng và sống trọn vẹn từng khoảnh khắc."
+        </p>
+        <div class="mt-3 flex items-center justify-between pt-2 border-t border-slate-200/50">
+          <span id="quote-author" class="text-xs font-bold text-amber-800/80">~ Nắng Sớm</span>
+          <button id="new-quote-btn" class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 px-2.5 py-1 rounded-xl bg-orange-100/60 hover:bg-orange-100 transition-colors">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Đổi Lời Chúc
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="relative z-10 w-full px-6 pb-6 pt-3 flex flex-col items-center gap-3">
+    <!-- Tap hint -->
+    <div class="glass-card px-4 py-2 rounded-2xl flex items-center gap-2 text-slate-600 text-xs shadow-sm">
+      <i data-lucide="mouse-pointer-click" class="w-4 h-4 text-orange-500 animate-bounce"></i>
+      <span>Rê chuột để chú mèo nhìn theo, nhấp vào bạn mèo để vuốt ve & nghe tiếng kêu!</span>
+    </div>
+
+    <div class="text-[11px] font-medium text-slate-500/80 flex items-center gap-1">
+      Tạo bởi Three.js • Lan tỏa năng lượng tích cực buổi sáng ☀️
+    </div>
+  </footer>
+
+  <script>
+    // Lucide Icons initialization
+    lucide.createIcons();
+
+    // Set Vietnamese Date
+    const today = new Date();
+    const dateOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+    const dateStr = today.toLocaleDateString('vi-VN', dateOptions);
+    document.getElementById('date-label').innerText = `${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)} • Rực rỡ và may mắn`;
+
+    // Audio Engine via Web Audio API (Lofi ambient chords + Meow & Purr sound synthesizer)
+    class CozyAudio {
+      constructor() {
+        this.ctx = null;
+        this.isPlaying = false;
+        this.ambientInterval = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      toggleAmbient() {
+        this.init();
+        if (this.isPlaying) {
+          this.stopAmbient();
+          return false;
+        } else {
+          this.startAmbient();
+          return true;
+        }
+      }
+
+      startAmbient() {
+        this.isPlaying = true;
+        // Play warm gentle pentatonic morning chord progression
+        const chords = [
+          [261.63, 329.63, 392.00, 493.88], // Cmaj7
+          [220.00, 261.63, 329.63, 392.00], // Am7
+          [174.61, 220.00, 261.63, 329.63], // Fmaj7
+          [196.00, 246.94, 293.66, 392.00]  // G6
+        ];
+        let chordIdx = 0;
+
+        const playChord = () => {
+          if (!this.isPlaying) return;
+          const currentChord = chords[chordIdx % chords.length];
+          currentChord.forEach((freq, i) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            const filter = this.ctx.createBiquadFilter();
+
+            osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(450, this.ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.035, this.ctx.currentTime + 1.2 + (i * 0.15));
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 3.8);
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(this.ctx.destination);
+
+            osc.start();
+            osc.stop(this.ctx.currentTime + 4.0);
+          });
+          chordIdx++;
+        };
+
+        playChord();
+        this.ambientInterval = setInterval(playChord, 3800);
+      }
+
+      stopAmbient() {
+        this.isPlaying = false;
+        if (this.ambientInterval) {
+          clearInterval(this.ambientInterval);
+          this.ambientInterval = null;
+        }
+      }
+
+      // Procedural Cute Meow Synthesizer
+      playMeow() {
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        // Pitch scoop imitating cute kitten: 440Hz -> 680Hz -> 480Hz
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+        osc.frequency.exponentialRampToValueAtTime(460, now + 0.38);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1400, now);
+        filter.frequency.linearRampToValueAtTime(2600, now + 0.12);
+        filter.frequency.linearRampToValueAtTime(1200, now + 0.38);
+
+        gain.gain.setValueAtTime(0.001, now);
+        gain.gain.linearRampToValueAtTime(0.12, now + 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.45);
+      }
+
+      // Cute Purr Vibration
+      playPurr() {
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(65, now);
+        osc.frequency.linearRampToValueAtTime(75, now + 0.2);
+        osc.frequency.linearRampToValueAtTime(60, now + 0.4);
+
+        // AM Modulator for purr flutter
+        const modOsc = this.ctx.createOscillator();
+        const modGain = this.ctx.createGain();
+        modOsc.frequency.setValueAtTime(22, now); // flutter rate
+        modGain.gain.setValueAtTime(0.05, now);
+        modOsc.connect(gain.gain);
+
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        modOsc.start(now);
+        osc.stop(now + 0.5);
+        modOsc.stop(now + 0.5);
+      }
+    }
+
+    const soundManager = new CozyAudio();
+
+    // Toggle Audio UI
+    const audioBtn = document.getElementById('audio-toggle');
+    const audioIcon = document.getElementById('audio-icon');
+    const audioText = document.getElementById('audio-text');
+
+    audioBtn.addEventListener('click', () => {
+      const active = soundManager.toggleAmbient();
+      if (active) {
+        audioIcon.setAttribute('data-lucide', 'volume-2');
+        audioText.innerText = 'Đang Phát Nhạc Sáng';
+        audioBtn.classList.add('border-amber-400', 'bg-amber-50');
+      } else {
+        audioIcon.setAttribute('data-lucide', 'volume-x');
+        audioText.innerText = 'Bật Giai Điệu Ban Mai';
+        audioBtn.classList.remove('border-amber-400', 'bg-amber-50');
+      }
+      lucide.createIcons();
+    });
+
+    const quotesList = [
+      { text: "Mỗi buổi sáng mang đến một hy vọng mới, một cơ hội mới để bạn tỏa sáng và sống trọn vẹn từng khoảnh khắc.", author: "Nắng Sớm" },
+      { text: "Nụ cười buổi sáng giống như đóa hoa hướng dương, hãy vươn mình đón nhận năng lượng tươi mới của ngày hôm nay!", author: "Tâm Hồn Rạng Rỡ" },
+      { text: "Đừng vội vã. Hãy hít một hơi thật sâu, uống một ngụm trà ấm và mỉm cười chào ngày mới cùng chú mèo nhỏ!", author: "Bình Yên Quanh Đây" },
+      { text: "Hôm nay là trang giấy trắng tinh khôi, bạn chính là tác giả của những điều rực rỡ nhất.", author: "Tia Nắng Ấm" },
+      { text: "Vạn dặm hành trình bắt đầu từ một bước chân. Chúc bạn có một ngày làm việc ngập tràn cảm hứng và may mắn!", author: "Động Lực Ngày Mới" }
+    ];
+
+    let quoteIndex = 0;
+    const quoteTextEl = document.getElementById('quote-text');
+    const quoteAuthorEl = document.getElementById('quote-author');
+    const newQuoteBtn = document.getElementById('new-quote-btn');
+
+    newQuoteBtn.addEventListener('click', () => {
+      quoteIndex = (quoteIndex + 1) % quotesList.length;
+      gsap.to([quoteTextEl, quoteAuthorEl], {
+        opacity: 0,
+        y: -6,
+        duration: 0.2,
+        onComplete: () => {
+          quoteTextEl.innerText = `"${quotesList[quoteIndex].text}"`;
+          quoteAuthorEl.innerText = `~ ${quotesList[quoteIndex].author}`;
+          gsap.to([quoteTextEl, quoteAuthorEl], { opacity: 1, y: 0, duration: 0.3 });
+        }
+      });
+    });
+
+    // Pet Hearts generator function
+    function spawnHearts(x, y) {
+      for (let i = 0; i < 3; i++) {
+        const heart = document.createElement('div');
+        heart.className = 'floating-heart';
+        const hearts = ['💖', '✨', '🐾', '🌸', '☀️'];
+        heart.innerText = hearts[Math.floor(Math.random() * hearts.length)];
+        const spreadX = (Math.random() - 0.5) * 60;
+        const spreadY = (Math.random() - 0.5) * 40;
+        heart.style.left = `${x + spreadX}px`;
+        heart.style.top = `${y + spreadY}px`;
+        document.body.appendChild(heart);
+
+        setTimeout(() => {
+          heart.remove();
+        }, 1400);
+      }
+    }
+  </script>
+
+  <script>
+    const canvas = document.getElementById('webgl-canvas');
+
+    // 1. Scene, Camera, Renderer Setup
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0xffe8d6, 0.035);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 1.2, 5.8);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // 2. Lighting (Golden warm morning atmosphere)
+    const ambientLight = new THREE.AmbientLight(0xfff3e0, 1.15);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xffecd2, 1.6);
+    sunLight.position.set(4, 7, 5);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 1024;
+    sunLight.shadow.mapSize.height = 1024;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 15;
+    sunLight.shadow.bias = -0.001;
+    scene.add(sunLight);
+
+    const rimLight = new THREE.DirectionalLight(0xff9a76, 0.85);
+    rimLight.position.set(-4, 3, -3);
+    scene.add(rimLight);
+
+    // 3. Materials
+    const catColor = 0xfffcf9; // Creamy warm white cat
+    const orangeStripeColor = 0xffa964; // Gentle orange patches
+    const pinkColor = 0xffb0ba; // Soft pink nose/ears/cheeks
+    const eyeColor = 0x2b3846; // Deep navy gloss eyes
+
+    const furMaterial = new THREE.MeshLambertMaterial({ color: catColor });
+    const patchMaterial = new THREE.MeshLambertMaterial({ color: orangeStripeColor });
+    const innerEarMaterial = new THREE.MeshLambertMaterial({ color: pinkColor });
+    const noseMaterial = new THREE.MeshLambertMaterial({ color: pinkColor });
+    const eyeMaterial = new THREE.MeshPhongMaterial({ color: eyeColor, shininess: 90 });
+    const eyeSparkleMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    const whiskerMaterial = new THREE.LineBasicMaterial({ color: 0xc4b5a5, linewidth: 2 });
+    const collarMaterial = new THREE.MeshLambertMaterial({ color: 0xf43f5e });
+    const bellMaterial = new THREE.MeshStandardMaterial({ color: 0xfbbf24, metalness: 0.65, roughness: 0.25 });
+
+    const catGroup = new THREE.Group();
+    // Shift slightly down for aesthetic balance
+    catGroup.position.set(0, -0.65, 0);
+    scene.add(catGroup);
+
+    // --- Body ---
+    const bodyGeo = new THREE.SphereGeometry(0.85, 32, 24);
+    bodyGeo.scale(1, 1.15, 0.95);
+    const bodyMesh = new THREE.Mesh(bodyGeo, furMaterial);
+    bodyMesh.castShadow = true;
+    bodyMesh.receiveShadow = true;
+    catGroup.add(bodyMesh);
+
+    // Cute orange patch on back
+    const backPatchGeo = new THREE.SphereGeometry(0.5, 16, 16);
+    backPatchGeo.scale(0.8, 1, 0.3);
+    const backPatch = new THREE.Mesh(backPatchGeo, patchMaterial);
+    backPatch.position.set(0.35, 0.25, -0.65);
+    catGroup.add(backPatch);
+
+    // --- Paws ---
+    const pawGeo = new THREE.SphereGeometry(0.22, 16, 16);
+    pawGeo.scale(0.9, 0.6, 1.25);
+
+    const leftPaw = new THREE.Mesh(pawGeo, furMaterial);
+    leftPaw.position.set(-0.42, -0.85, 0.65);
+    leftPaw.castShadow = true;
+    catGroup.add(leftPaw);
+
+    const rightPaw = new THREE.Mesh(pawGeo, furMaterial);
+    rightPaw.position.set(0.42, -0.85, 0.65);
+    rightPaw.castShadow = true;
+    catGroup.add(rightPaw);
+
+    // --- Tail ---
+    const tailGroup = new THREE.Group();
+    tailGroup.position.set(0, -0.6, -0.8);
+    catGroup.add(tailGroup);
+
+    const tailCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0.25, 0.35, -0.3),
+      new THREE.Vector3(0.1, 0.8, -0.45),
+      new THREE.Vector3(-0.15, 1.1, -0.35)
+    ]);
+    const tailGeo = new THREE.TubeGeometry(tailCurve, 20, 0.09, 8, false);
+    const tailMesh = new THREE.Mesh(tailGeo, patchMaterial);
+    tailMesh.castShadow = true;
+    tailGroup.add(tailMesh);
+
+    // --- Collar & Bell ---
+    const collarGeo = new THREE.TorusGeometry(0.72, 0.05, 12, 32);
+    collarGeo.rotateX(Math.PI / 2.2);
+    const collarMesh = new THREE.Mesh(collarGeo, collarMaterial);
+    collarMesh.position.set(0, 0.6, 0.05);
+    catGroup.add(collarMesh);
+
+    const bellGeo = new THREE.SphereGeometry(0.1, 16, 16);
+    const bellMesh = new THREE.Mesh(bellGeo, bellMaterial);
+    bellMesh.position.set(0, 0.48, 0.72);
+    bellMesh.castShadow = true;
+    catGroup.add(bellMesh);
+
+    // --- Head Group (Allows independent tracking & nodding) ---
+    const headGroup = new THREE.Group();
+    headGroup.position.set(0, 1.05, 0.15);
+    catGroup.add(headGroup);
+
+    // Head Base (Chubby cheeks)
+    const headGeo = new THREE.SphereGeometry(0.72, 32, 28);
+    headGeo.scale(1.1, 0.95, 1.02);
+    const headMesh = new THREE.Mesh(headGeo, furMaterial);
+    headMesh.castShadow = true;
+    headGroup.add(headMesh);
+
+    // Cute forehead patch
+    const foreheadPatchGeo = new THREE.SphereGeometry(0.38, 16, 16);
+    foreheadPatchGeo.scale(0.8, 0.9, 0.3);
+    const foreheadPatch = new THREE.Mesh(foreheadPatchGeo, patchMaterial);
+    foreheadPatch.position.set(-0.25, 0.3, 0.58);
+    foreheadPatch.rotation.set(-0.1, 0.2, 0.1);
+    headGroup.add(foreheadPatch);
+
+    // --- Ears with spring wiggle ---
+    const leftEarGroup = new THREE.Group();
+    leftEarGroup.position.set(-0.48, 0.58, 0.1);
+    leftEarGroup.rotation.z = 0.25;
+    leftEarGroup.rotation.x = -0.15;
+    headGroup.add(leftEarGroup);
+
+    const earGeo = new THREE.ConeGeometry(0.28, 0.5, 4);
+    earGeo.scale(1, 1, 0.45);
+    const leftEarMesh = new THREE.Mesh(earGeo, furMaterial);
+    leftEarGroup.add(leftEarMesh);
+
+    const innerEarGeo = new THREE.ConeGeometry(0.18, 0.36, 4);
+    innerEarGeo.scale(1, 1, 0.35);
+    const leftInnerEar = new THREE.Mesh(innerEarGeo, innerEarMaterial);
+    leftInnerEar.position.set(0, -0.04, 0.05);
+    leftEarGroup.add(leftInnerEar);
+
+    const rightEarGroup = new THREE.Group();
+    rightEarGroup.position.set(0.48, 0.58, 0.1);
+    rightEarGroup.rotation.z = -0.25;
+    rightEarGroup.rotation.x = -0.15;
+    headGroup.add(rightEarGroup);
+
+    const rightEarMesh = new THREE.Mesh(earGeo, patchMaterial);
+    rightEarGroup.add(rightEarMesh);
+
+    const rightInnerEar = new THREE.Mesh(innerEarGeo, innerEarMaterial);
+    rightInnerEar.position.set(0, -0.04, 0.05);
+    rightEarGroup.add(rightInnerEar);
+
+    // --- Eyes (Glossy with anime sparkles and blinking scale) ---
+    const eyesGroup = new THREE.Group();
+    headGroup.add(eyesGroup);
+
+    const eyeBaseGeo = new THREE.SphereGeometry(0.12, 20, 20);
+    const eyeSparkleGeo = new THREE.SphereGeometry(0.04, 12, 12);
+    const eyeMiniSparkleGeo = new THREE.SphereGeometry(0.02, 8, 8);
+
+    // Left Eye
+    const leftEyeContainer = new THREE.Group();
+    leftEyeContainer.position.set(-0.28, 0.08, 0.66);
+    eyesGroup.add(leftEyeContainer);
+
+    const leftEye = new THREE.Mesh(eyeBaseGeo, eyeMaterial);
+    leftEyeContainer.add(leftEye);
+
+    const leftSparkle1 = new THREE.Mesh(eyeSparkleGeo, eyeSparkleMaterial);
+    leftSparkle1.position.set(-0.03, 0.04, 0.1);
+    leftEyeContainer.add(leftSparkle1);
+
+    const leftSparkle2 = new THREE.Mesh(eyeMiniSparkleGeo, eyeSparkleMaterial);
+    leftSparkle2.position.set(0.04, -0.03, 0.1);
+    leftEyeContainer.add(leftSparkle2);
+
+    // Right Eye
+    const rightEyeContainer = new THREE.Group();
+    rightEyeContainer.position.set(0.28, 0.08, 0.66);
+    eyesGroup.add(rightEyeContainer);
+
+    const rightEye = new THREE.Mesh(eyeBaseGeo, eyeMaterial);
+    rightEyeContainer.add(rightEye);
+
+    const rightSparkle1 = new THREE.Mesh(eyeSparkleGeo, eyeSparkleMaterial);
+    rightSparkle1.position.set(-0.03, 0.04, 0.1);
+    rightEyeContainer.add(rightSparkle1);
+
+    const rightSparkle2 = new THREE.Mesh(eyeMiniSparkleGeo, eyeSparkleMaterial);
+    rightSparkle2.position.set(0.04, -0.03, 0.1);
+    rightEyeContainer.add(rightSparkle2);
+
+    // Blushing Cheeks
+    const blushGeo = new THREE.SphereGeometry(0.12, 16, 16);
+    blushGeo.scale(1.2, 0.5, 0.4);
+
+    const leftBlush = new THREE.Mesh(blushGeo, innerEarMaterial);
+    leftBlush.position.set(-0.46, -0.07, 0.58);
+    leftBlush.rotation.set(0.1, -0.4, 0.1);
+    headGroup.add(leftBlush);
+
+    const rightBlush = new THREE.Mesh(blushGeo, innerEarMaterial);
+    rightBlush.position.set(0.46, -0.07, 0.58);
+    rightBlush.rotation.set(0.1, 0.4, -0.1);
+    headGroup.add(rightBlush);
+
+    // Tiny Pink Nose
+    const noseGeo = new THREE.SphereGeometry(0.05, 12, 12);
+    noseGeo.scale(1.1, 0.8, 0.9);
+    const noseMesh = new THREE.Mesh(noseGeo, noseMaterial);
+    noseMesh.position.set(0, 0.01, 0.74);
+    headGroup.add(noseMesh);
+
+    // Snout / Mouth Muzzle
+    const muzzleGeo = new THREE.SphereGeometry(0.11, 14, 14);
+    muzzleGeo.scale(1.1, 0.85, 0.7);
+
+    const leftMuzzle = new THREE.Mesh(muzzleGeo, furMaterial);
+    leftMuzzle.position.set(-0.08, -0.07, 0.69);
+    headGroup.add(leftMuzzle);
+
+    const rightMuzzle = new THREE.Mesh(muzzleGeo, furMaterial);
+    rightMuzzle.position.set(0.08, -0.07, 0.69);
+    headGroup.add(rightMuzzle);
+
+    // --- Whiskers helper ---
+    function createWhisker(x1, y1, z1, x2, y2, z2) {
+      const points = [new THREE.Vector3(x1, y1, z1), new THREE.Vector3(x2, y2, z2)];
+      const geom = new THREE.BufferGeometry().setFromPoints(points);
+      return new THREE.Line(geom, whiskerMaterial);
+    }
+
+    // Left Whiskers
+    headGroup.add(createWhisker(-0.16, -0.05, 0.7, -0.65, 0.02, 0.72));
+    headGroup.add(createWhisker(-0.16, -0.09, 0.7, -0.62, -0.14, 0.7));
+
+    // Right Whiskers
+    headGroup.add(createWhisker(0.16, -0.05, 0.7, 0.65, 0.02, 0.72));
+    headGroup.add(createWhisker(0.16, -0.09, 0.7, 0.62, -0.14, 0.7));
+
+    const particleCount = 120;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePos = new Float32Array(particleCount * 3);
+
+    for (let i = 0; i < particleCount * 3; i += 3) {
+      particlePos[i] = (Math.random() - 0.5) * 10;
+      particlePos[i + 1] = Math.random() * 6 - 2;
+      particlePos[i + 2] = (Math.random() - 0.5) * 6;
+    }
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+
+    const particleMat = new THREE.PointsMaterial({
+      color: 0xffe29a,
+      size: 0.07,
+      transparent: true,
+      opacity: 0.65,
+      blending: THREE.AdditiveBlending
+    });
+    const dustParticles = new THREE.Points(particleGeo, particleMat);
+    scene.add(dustParticles);
+
+    // Warm Platform / Cushion
+    const cushionGeo = new THREE.CylinderGeometry(1.6, 1.7, 0.25, 36);
+    const cushionMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    const cushion = new THREE.Mesh(cushionGeo, cushionMat);
+    cushion.position.set(0, -0.92, 0);
+    cushion.receiveShadow = true;
+    catGroup.add(cushion);
+
+    const mouse = { x: 0, y: 0, targetX: 0, targetY: 0 };
+    const raycaster = new THREE.Raycaster();
+    const rayMouse = new THREE.Vector2(-999, -999);
+
+    function onPointerMove(event) {
+      // Normalize coordinate for 3D head gaze
+      const x = (event.clientX / window.innerWidth) * 2 - 1;
+      const y = -(event.clientY / window.innerHeight) * 2 + 1;
+      mouse.targetX = x * 0.45;
+      mouse.targetY = y * 0.35;
+
+      rayMouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      rayMouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    }
+
+    window.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        onPointerMove(e.touches[0]);
+      }
+    }, { passive: true });
+
+    // Interactive Petting reaction
+    function petCat(clientX, clientY) {
+      soundManager.playMeow();
+      soundManager.playPurr();
+
+      // Bounce & Wiggle Animation via GSAP
+      gsap.to(catGroup.scale, {
+        x: 1.08,
+        y: 0.92,
+        duration: 0.15,
+        yoyo: true,
+        repeat: 1,
+        ease: 'power1.out'
+      });
+
+      gsap.to(headGroup.rotation, {
+        x: headGroup.rotation.x + 0.2,
+        duration: 0.15,
+        yoyo: true,
+        repeat: 1
+      });
+
+      // Ear twitch
+      gsap.to([leftEarGroup.rotation, rightEarGroup.rotation], {
+        z: (i) => (i === 0 ? 0.45 : -0.45),
+        duration: 0.12,
+        yoyo: true,
+        repeat: 3,
+        ease: 'power2.inOut'
+      });
+
+      // Tail energetic swish
+      gsap.to(tailGroup.rotation, {
+        y: 0.8,
+        duration: 0.18,
+        yoyo: true,
+        repeat: 3
+      });
+
+      // Close eyes warmly for a moment
+      gsap.to(eyesGroup.scale, {
+        y: 0.1,
+        duration: 0.25,
+        yoyo: true,
+        repeat: 1,
+        ease: 'power1.inOut'
+      });
+
+      const clickX = clientX || window.innerWidth / 2;
+      const clickY = clientY || window.innerHeight / 2 + 30;
+      spawnHearts(clickX, clickY);
+    }
+
+    // Direct canvas click detection on cat
+    function handleCanvasInteraction(e) {
+      const clientX = e.clientX || (e.changedTouches && e.changedTouches[0].clientX);
+      const clientY = e.clientY || (e.changedTouches && e.changedTouches[0].clientY);
+
+      raycaster.setFromCamera(rayMouse, camera);
+      const intersects = raycaster.intersectObjects(catGroup.children, true);
+
+      if (intersects.length > 0) {
+        petCat(clientX, clientY);
+      }
+    }
+
+    canvas.addEventListener('click', handleCanvasInteraction);
+    canvas.addEventListener('touchend', (e) => {
+      handleCanvasInteraction(e);
+    });
+
+    // UI Pet Button
+    document.getElementById('pet-cat-btn').addEventListener('click', (e) => {
+      const rect = e.target.getBoundingClientRect();
+      petCat(rect.left + rect.width / 2, rect.top);
+    });
+
+    let lastBlinkTime = 0;
+    let blinkInterval = 3.5; // seconds
+
+    function checkBlink(time) {
+      if (time - lastBlinkTime > blinkInterval) {
+        lastBlinkTime = time;
+        blinkInterval = 2.5 + Math.random() * 3.5;
+
+        // Perform natural blink
+        gsap.to(eyesGroup.scale, {
+          y: 0.05,
+          duration: 0.09,
+          yoyo: true,
+          repeat: 1,
+          ease: 'power2.inOut'
+        });
+      }
+    }
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const elapsedTime = clock.getElapsedTime();
+
+      // Smooth camera & mouse interpolation
+      mouse.x += (mouse.targetX - mouse.x) * 0.05;
+      mouse.y += (mouse.targetY - mouse.y) * 0.05;
+
+      // Cat Head tracking
+      headGroup.rotation.y = mouse.x * 0.9;
+      headGroup.rotation.x = -mouse.y * 0.7;
+
+      // Cute natural breathing motion
+      catGroup.position.y = -0.65 + Math.sin(elapsedTime * 2.2) * 0.025;
+      bodyMesh.scale.y = 1.15 + Math.sin(elapsedTime * 2.2) * 0.02;
+
+      // Gentle tail idle swaying
+      tailGroup.rotation.y = Math.sin(elapsedTime * 2.0) * 0.35;
+      tailGroup.rotation.z = Math.cos(elapsedTime * 1.5) * 0.08;
+
+      // Soft Bell dangle
+      bellMesh.position.x = Math.sin(elapsedTime * 3.0) * 0.015;
+
+      // Slow upward drift for morning particles
+      const positions = dustParticles.geometry.attributes.position.array;
+      for (let i = 1; i < positions.length; i += 3) {
+        positions[i] += 0.0035;
+        if (positions[i] > 4) {
+          positions[i] = -2;
+        }
+      }
+      dustParticles.geometry.attributes.position.needsUpdate = true;
+      dustParticles.rotation.y = elapsedTime * 0.02;
+
+      // Blinking controller
+      checkBlink(elapsedTime);
+
+      renderer.render(scene, camera);
+    }
+
+    // Responsive window resize
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      
+      // Adapt camera FOV/position for mobile screens so the cat stays centered
+      if (window.innerWidth < 768) {
+        camera.position.set(0, 1.4, 6.8);
+        catGroup.position.set(0, -0.85, 0);
+      } else {
+        camera.position.set(0, 1.2, 5.8);
+        catGroup.position.set(0, -0.65, 0);
+      }
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener('resize', onWindowResize);
+    onWindowResize();
+
+    // Start scene loop
+    animate();
+  </script>
+</body>
+</html>

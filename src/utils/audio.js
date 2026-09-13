@@ -1,4 +1,4 @@
-// CozyAudio: Procedural Ambient Morning Music & Kitten Sound Synthesizer via Web Audio API
+// CozyAudio: Procedural Ambient Morning Music & MP3 Puppy Bark Player
 
 class CozyAudio {
   constructor() {
@@ -19,92 +19,43 @@ class CozyAudio {
     }
   }
 
-  toggleAmbient(onStateChange) {
-    this.init();
-    if (this.isPlaying) {
-      this.stopAmbient();
-      if (onStateChange) onStateChange(false);
-      return false;
-    } else {
-      this.startAmbient();
-      if (onStateChange) onStateChange(true);
-      return true;
-    }
-  }
-
-  startAmbient() {
-    if (!this.ctx) this.init();
-    if (!this.ctx) return;
-    this.isPlaying = true;
-
-    // Warm, gentle pentatonic morning chord progression
-    const chords = [
-      [261.63, 329.63, 392.00, 493.88], // Cmaj7
-      [220.00, 261.63, 329.63, 392.00], // Am7
-      [174.61, 220.00, 261.63, 329.63], // Fmaj7
-      [196.00, 246.94, 293.66, 392.00]  // G6
-    ];
-    let chordIdx = 0;
-
-    const playChord = () => {
-      if (!this.isPlaying || !this.ctx) return;
-      const currentChord = chords[chordIdx % chords.length];
-      currentChord.forEach((freq, i) => {
-        try {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          const filter = this.ctx.createBiquadFilter();
-
-          osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(450, this.ctx.currentTime);
-
-          gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
-          gain.gain.linearRampToValueAtTime(0.035, this.ctx.currentTime + 1.2 + (i * 0.15));
-          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 3.8);
-
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect(this.ctx.destination);
-
-          osc.start();
-          osc.stop(this.ctx.currentTime + 4.0);
-        } catch {
-          // ignore potential audio node issues
-        }
-      });
-      chordIdx++;
-    };
-
-    playChord();
-    this.ambientInterval = setInterval(playChord, 3800);
-  }
-
-  stopAmbient() {
-    this.isPlaying = false;
-    if (this.ambientInterval) {
-      clearInterval(this.ambientInterval);
-      this.ambientInterval = null;
-    }
-  }
-
-  // Phát âm thanh file MP3 từ thư mục public do người dùng tải lên
-  playMeow() {
+  // Plays the requested stu9-small-bark-352865.mp3 sound effect on click/petting
+  playBark() {
     try {
-      const audio = new Audio('/yomecerlm3-meow-460686.mp3');
-      audio.volume = 0.55; // Âm lượng dịu nhẹ vừa nghe
+      const audio = new Audio('/stu9-small-bark-352865.mp3');
+      audio.volume = 0.65;
       audio.play().catch(() => {
-        // Tránh lỗi khi trình duyệt chưa nhận user gesture đầu tiên
+        // Fallback or ignore if blocked prior to user interaction
       });
     } catch {
-      // Bỏ qua lỗi audio
+      // Ignore audio error
     }
   }
 
-  // Tạm dừng purr để âm thanh mp3 của người dùng được tròn trịa và rõ nhất
-  playPurr() {}
+  // Cute switch chime sound
+  playSwitchChime() {
+    this.init();
+    if (!this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      const freqs = [523.25, 659.25, 783.99, 1046.50];
+      freqs.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+
+        gain.gain.setValueAtTime(0.001, now + idx * 0.04);
+        gain.gain.linearRampToValueAtTime(0.08, now + idx * 0.04 + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.04 + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + idx * 0.04);
+        osc.stop(now + idx * 0.04 + 0.26);
+      });
+    } catch {}
+  }
 }
 
 export const soundManager = new CozyAudio();

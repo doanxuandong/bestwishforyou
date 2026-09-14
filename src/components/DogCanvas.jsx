@@ -940,8 +940,6 @@ const DogCanvas = forwardRef(function DogCanvas({ currentDogIndex = 0, onPet }, 
     // Spring & Jump Dog Switch Handler
     const switchDog = (newIndex) => {
       const prevIdx = activeDogIndexRef.current;
-      soundManager.playSwitchChime();
-      soundManager.playBark(newIndex);
 
       puppies.forEach((p, idx) => {
         gsap.killTweensOf(p.root.scale);
